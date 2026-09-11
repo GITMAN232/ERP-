@@ -3,13 +3,40 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const DEFAULT_DB_URL = 'postgresql://postgres.eapwxlwsgfiualqedksu:KTMduke%40200@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres';
-const connectionString = process.env.DATABASE_URL || DEFAULT_DB_URL;
+function formatConnectionString(url?: string): string {
+  if (!url) {
+    return 'postgresql://postgres.eapwxlwsgfiualqedksu:KTMduke%40200@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres';
+  }
+  try {
+    const atCount = (url.match(/@/g) || []).length;
+    if (atCount > 1) {
+      const schemeEnd = url.indexOf('://');
+      if (schemeEnd !== -1) {
+        const lastAt = url.lastIndexOf('@');
+        const scheme = url.slice(0, schemeEnd + 3);
+        const creds = url.slice(schemeEnd + 3, lastAt);
+        const hostPortDb = url.slice(lastAt + 1);
+        const userColon = creds.indexOf(':');
+        if (userColon !== -1) {
+          const user = creds.slice(0, userColon);
+          const pass = creds.slice(userColon + 1);
+          return `${scheme}${encodeURIComponent(decodeURIComponent(user))}:${encodeURIComponent(decodeURIComponent(pass))}@${hostPortDb}`;
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return url;
+}
+
+const connectionString = formatConnectionString(process.env.DATABASE_URL);
 const isRemote = connectionString.includes('supabase') || connectionString.includes('sslmode=') || connectionString.includes('ssl=true');
 
 export const pool = new Pool({
   connectionString,
-  ssl: isRemote ? { rejectUnauthorized: false } : undefined
+  ssl: isRemote ? { rejectUnauthorized: false } : undefined,
+  connectionTimeoutMillis: 10000
 });
 
 export async function initDB(): Promise<void> {
