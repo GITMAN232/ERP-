@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/mini_erp';
+const DEFAULT_DB_URL = 'postgresql://postgres.eapwxlwsgfiualqedksu:KTMduke%40200@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres';
+const connectionString = process.env.DATABASE_URL || DEFAULT_DB_URL;
 const isRemote = connectionString.includes('supabase') || connectionString.includes('sslmode=') || connectionString.includes('ssl=true');
 
 export const pool = new Pool({

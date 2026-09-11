@@ -80,13 +80,13 @@ async function startServer() {
   try {
     await initDB();
     await runSeed();
-    app.listen(PORT, () => {
-      console.log(`Mini ERP + CRM Operations Portal server running on port ${PORT}`);
-    });
   } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
+    console.error('Database connection/initialization error:', err);
   }
+
+  app.listen(PORT, () => {
+    console.log(`Mini ERP + CRM Operations Portal server running on port ${PORT}`);
+  });
 }
 
 if (process.env.NODE_ENV !== 'test') {
