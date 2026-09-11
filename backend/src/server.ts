@@ -73,23 +73,49 @@ router.post('/challans/:id/confirm', authenticateToken, requireRole(['Admin', 'S
 app.use('/', router);
 app.use('/api', router);
 
+// DB initialization promise for serverless and long-running environments
+let dbReadyPromise: Promise<void> | null = null;
+
+function ensureDB(): Promise<void> {
+  if (!dbReadyPromise) {
+    dbReadyPromise = (async () => {
+      try {
+        await initDB();
+        await runSeed();
+      } catch (err) {
+        console.error('Database connection/initialization error:', err);
+      }
+    })();
+  }
+  return dbReadyPromise;
+}
+
+app.use(async (_req, _res, next) => {
+  await ensureDB();
+  next();
+});
+
 // Error handler
 app.use(errorHandler);
 
 async function startServer() {
-  try {
-    await initDB();
-    await runSeed();
-  } catch (err) {
-    console.error('Database connection/initialization error:', err);
-  }
+  await ensureDB();
 
-  app.listen(PORT, () => {
-    console.log(`Mini ERP + CRM Operations Portal server running on port ${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    const server = app.listen(PORT, () => {
+      console.log(`Mini ERP + CRM Operations Portal server running on port ${PORT}`);
+    });
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.warn(`Port ${PORT} is already in use.`);
+      } else {
+        console.error('Server listen error:', err);
+      }
+    });
+  }
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 
